@@ -48,6 +48,7 @@ public class CrimesController {
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
+    	this.txtResult.appendText("Ciao");
     	txtResult.clear();
     	txtResult.appendText("Crea grafo...\n");
     	String categoria= boxCategoria.getValue();
