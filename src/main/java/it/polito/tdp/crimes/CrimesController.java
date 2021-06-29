@@ -10,7 +10,6 @@ import java.util.ResourceBundle;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
 
-import it.polito.tdp.crimes.model.Adiacenza;
 import it.polito.tdp.crimes.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -38,7 +37,7 @@ public class CrimesController {
     private Button btnAnalisi; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxArco"
-    private ComboBox<Adiacenza> boxArco; // Value injected by FXMLLoader
+    private ComboBox<DefaultWeightedEdge> boxArco; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnPercorso"
     private Button btnPercorso; // Value injected by FXMLLoader
@@ -48,33 +47,36 @@ public class CrimesController {
 
     @FXML
     void doCreaGrafo(ActionEvent event) {
-    	this.txtResult.appendText("Ciao");
-    	txtResult.clear();
-    	txtResult.appendText("Crea grafo...\n");
-    	String categoria= boxCategoria.getValue();
-    	int giorno= boxGiorno.getValue();
-    	model.creaGrafo(categoria, giorno);
-    	txtResult.appendText("#VERTICI: "+model.getNvertici()+"\n");
-    	txtResult.appendText("#ARCHI: "+model.getNArchi()+"\n");
-    	
-    	List<Adiacenza> result= model.puntoD(categoria, giorno);
-    	for(Adiacenza e: result) {
-    		this.txtResult.appendText(e.toString());
-    		this.boxArco.getItems().add(e);
+    	this.txtResult.clear();
+    	String categoria= this.boxCategoria.getValue();
+    	Integer giorno= this.boxGiorno.getValue();
+    	if(giorno==null || categoria==null) {
+    		this.txtResult.setText("Seleziona un giorno e una categoria!");
+    		return;
     	}
+    	this.model.creaGrafo(categoria, giorno);
+    	this.txtResult.appendText("Grafo creato con "+model.getNVertici()+" vertici e "+model.getNArchi()+" archi\n");
+    	List<DefaultWeightedEdge> result= model.puntoD();
+    	for(DefaultWeightedEdge e: result) {
+    		this.txtResult.appendText(model.getGrafo().getEdgeSource(e)+"  -  "+model.getGrafo().getEdgeTarget(e)+" = "+model.getGrafo().getEdgeWeight(e)+"\n");
+    	}
+    	this.txtResult.appendText("Peso mediano: "+model.getMediano());
+    	this.boxArco.getItems().clear();
+    	this.boxArco.getItems().addAll(result);
     }
 
     @FXML
     void doCalcolaPercorso(ActionEvent event) {
-    	txtResult.clear();
-    	txtResult.appendText("Calcola percorso...\n");
-    	Adiacenza a= this.boxArco.getValue();
-    	String t1=a.getT1();
-    	String t2=a.getT2();
-    	List <String> result= model.trovaPercorso(t1, t2);
-    	this.txtResult.appendText("Il percorso da "+t1+" a "+t2+" e':\n");
-    	for(String r: result) {
-    		this.txtResult.appendText(r+"\n");
+    	this.txtResult.clear();
+    	if(model.getGrafo()==null) {
+    		this.txtResult.setText("Crea prima il grafo!");
+    		return;
+    	}
+    	DefaultWeightedEdge e = this.boxArco.getValue();
+    	List <String> percorso= model.trovaPercorso(e);
+    	this.txtResult.appendText("Il percorso da "+model.getGrafo().getEdgeSource(e)+" a "+this.model.getGrafo().getEdgeTarget(e)+ " è: \n");
+    	for(String s: percorso) {
+    		this.txtResult.appendText(s+"\n");
     	}
     }
 
@@ -92,6 +94,6 @@ public class CrimesController {
     public void setModel(Model model) {
     	this.model = model;
     	this.boxCategoria.getItems().addAll(model.getCategorie());
-    	this.boxGiorno.getItems().addAll(model.getGiorno());
+    	this.boxGiorno.getItems().addAll(model.getAnni());
     }
 }

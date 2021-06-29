@@ -11,89 +11,109 @@ import it.polito.tdp.crimes.db.EventsDao;
 
 public class Model {
 	EventsDao dao;
-	SimpleWeightedGraph <String, DefaultWeightedEdge> grafo;
-	List<String> migliore;
+	SimpleWeightedGraph<String, DefaultWeightedEdge>grafo;
+	Double mediano=0.0;
+	List <String> migliore;
 	
+	public Double getMediano() {
+		return mediano;
+	}
+
 	public Model() {
 		dao= new EventsDao();
+		
 	}
 	
-	public List <String> getCategorie(){
-		return dao.getCategorie();
-	}
-	
-	public List <Integer> getGiorno(){
-		return dao.getGiorno();
-	}
-	
-	public void creaGrafo(String categoria, int giorno) {
-		grafo= new SimpleWeightedGraph <String, DefaultWeightedEdge> (DefaultWeightedEdge.class);
-		Graphs.addAllVertices(this.grafo, dao.getVertici(categoria, giorno));
+	public void creaGrafo(String categoria, Integer giorno) {
+		grafo= new SimpleWeightedGraph< String, DefaultWeightedEdge>(DefaultWeightedEdge.class);
+		Graphs.addAllVertices(grafo, dao.getVertici(categoria, giorno));
 		for(Adiacenza a: dao.getAdiacenza(categoria, giorno)) {
-			Graphs.addEdgeWithVertices(this.grafo, a.getT1(), a.getT2(), a.getPeso());
+			if(grafo.containsVertex(a.getTipo1())&& grafo.containsVertex(a.getTipo2())) {
+				Graphs.addEdge(grafo, a.getTipo1(), a.getTipo2(), a.getPeso());
+			}
 		}
 	
 	}
 	
-	public double pesoMedio() {
-		double pesoMedio=0.0;
-		double pesoMax=Integer.MIN_VALUE;
-		double pesoMin=Integer.MAX_VALUE;
-		for(DefaultWeightedEdge e: this.grafo.edgeSet()) {
-			if(grafo.getEdgeWeight(e)>pesoMax)
-				pesoMax=grafo.getEdgeWeight(e);
+	public List <DefaultWeightedEdge> puntoD(){
+		List<DefaultWeightedEdge> result= new ArrayList<>();
+		Double pesoMin=Double.MAX_VALUE;
+		Double pesoMax=0.0;
+		for(DefaultWeightedEdge e: grafo.edgeSet()) {
 			if(grafo.getEdgeWeight(e)<pesoMin)
 				pesoMin=grafo.getEdgeWeight(e);
+			if(grafo.getEdgeWeight(e)>pesoMax)
+				pesoMax= grafo.getEdgeWeight(e);
 		}
-		pesoMedio=(pesoMax+pesoMin)/2;
-		return pesoMedio;
-	}
-	
-	public List <Adiacenza> puntoD(String categoria, int anno){
-		List <Adiacenza> result= new ArrayList<>();
-		for (Adiacenza e: this.dao.getAdiacenza(categoria, anno)) {
-			if(e.getPeso()<this.pesoMedio())
+		 mediano= (pesoMin+pesoMax)/2;
+		for(DefaultWeightedEdge e: grafo.edgeSet()) {
+			if(grafo.getEdgeWeight(e)<mediano)
 				result.add(e);
+			
 		}
 		return result;
 	}
 	
+	public int getNVertici() {
+		return grafo.vertexSet().size();
+	}
+	public int getNArchi() {
+		return grafo.edgeSet().size();
+	}
 	
-	public List<String>trovaPercorso(String t1, String t2){
-		this.migliore=new ArrayList<>();
-		List <String> parziale= new ArrayList <>();
-		parziale.add(t1);
-		cerca(parziale,t2);
+	public List<String> trovaPercorso(DefaultWeightedEdge e){
+		migliore= new ArrayList<>();
+		List<String> parziale= new ArrayList<>();
+		String primo= grafo.getEdgeSource(e);
+		String arrivo= grafo.getEdgeTarget(e);
+		parziale.add(primo);
+		cerca(parziale, arrivo);
 		return migliore;
 		
 	}
 	
-	private void cerca(List<String> parziale, String t2) {
-		//caso terminale
-			if(parziale.get(parziale.size()-1).equals(t2)) {
-				if(parziale.size()>migliore.size()) {
-					migliore= new ArrayList<>(parziale);
-					
-				}
-				return;
+	
+	private void cerca(List<String> parziale, String arrivo) {
+		String ultimo= parziale.get(parziale.size()-1);
+		if(ultimo.equals(arrivo)) {
+			if(calcolaPeso(parziale)>calcolaPeso(migliore)) {
+				migliore= new ArrayList<>(parziale);
 			}
-			List <String> vicini= Graphs.neighborListOf(this.grafo, parziale.get(parziale.size()-1));
-			for(String v: vicini) {
-				if(!parziale.contains(v)) {
-					parziale.add(v);
-					cerca(parziale, t2);
-					parziale.remove(parziale.get(parziale.size()-1));
-					
-				}
+			return;
+		}
+		for(String s: Graphs.neighborListOf(grafo, ultimo)) {
+			if(!parziale.contains(s)) {
+				parziale.add(s);
+				cerca(parziale,arrivo);
+				parziale.remove(s);
 			}
+		}
 		
 	}
 
-	public int getNvertici() {
-		return grafo.vertexSet().size();
+	private double calcolaPeso(List<String> parziale) {
+		Double peso=0.0;
+		for(int i=1; i<parziale.size(); i++) {
+			String a = parziale.get(i-1);
+			String b=parziale.get(i);
+			peso=peso+grafo.getEdgeWeight(grafo.getEdge(a, b));
+		}
+		return peso;
+	}
+
+	public List <String> getCategorie(){
+		return dao.getCategorie();
+	}
+	public List <Integer> getAnni(){
+		return dao.getAnni();
+	}
+
+	public EventsDao getDao() {
+		return dao;
+	}
+
+	public SimpleWeightedGraph<String, DefaultWeightedEdge> getGrafo() {
+		return grafo;
 	}
 	
-	public int getNArchi() {
-		return grafo.edgeSet().size();
-	}
 }
